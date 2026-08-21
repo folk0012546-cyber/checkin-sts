@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>เช็คขึ้นเครื่อง STS</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<style>
+:root{--bg:#0f1720;--card:#1b2733;--card2:#22303d;--line:#2f4152;--txt:#eaf2f8;--mut:#8ea3b5;
+--green:#22c55e;--greenbg:#123a24;--amber:#f59e0b;--red:#ef4444;--blue:#3b82f6;--vip:#a855f7;}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+body{font-family:-apple-system,"Segoe UI",Roboto,"Noto Sans Thai",sans-serif;background:var(--bg);color:var(--txt);
+padding-bottom:40px;font-size:16px}
+.wrap{max-width:640px;margin:0 auto}
+header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#0f1720,#0f1720ee);
+backdrop-filter:blur(6px);padding:10px 12px 8px;border-bottom:1px solid var(--line)}
+.htop{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.htop h1{font-size:18px;font-weight:800;letter-spacing:.3px}
+.who{font-size:12px;color:var(--mut);background:var(--card);padding:5px 10px;border-radius:20px;border:1px solid var(--line);white-space:nowrap}
+.who b{color:var(--txt)}
+.counter{display:flex;gap:8px;margin-top:10px}
+.stat{flex:1;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 8px;text-align:center}
+.stat .n{font-size:26px;font-weight:800;line-height:1}
+.stat .l{font-size:11px;color:var(--mut);margin-top:3px}
+.stat.done .n{color:var(--green)} .stat.left .n{color:var(--amber)}
+.bar{height:8px;background:var(--card);border-radius:6px;overflow:hidden;margin-top:9px;border:1px solid var(--line)}
+.bar > i{display:block;height:100%;background:linear-gradient(90deg,#22c55e,#16a34a);width:0;transition:width .3s}
+.search{width:100%;margin-top:9px;padding:11px 14px;border-radius:12px;border:1px solid var(--line);
+background:var(--card);color:var(--txt);font-size:16px}
+.search::placeholder{color:var(--mut)}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:9px 0 2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;padding:8px 14px;border-radius:20px;border:1px solid var(--line);background:var(--card);
+color:var(--mut);font-size:14px;font-weight:600;white-space:nowrap}
+.chip.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.chip.on.st{background:var(--green);border-color:var(--green)}
+select.sel{margin:8px 12px 0;width:calc(100% - 24px);padding:10px 12px;border-radius:12px;border:1px solid var(--line);
+background:var(--card);color:var(--txt);font-size:15px}
+.gh{padding:16px 14px 6px;font-size:13px;font-weight:800;color:var(--mut);letter-spacing:.5px;text-transform:uppercase;
+display:flex;justify-content:space-between;align-items:center}
+.gh span.c{color:var(--txt);background:var(--card);padding:2px 10px;border-radius:12px;font-size:12px}
+.list{padding:0 12px}
+.row{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);
+border-radius:14px;padding:12px;margin-bottom:8px;cursor:pointer;transition:background .12s,border-color .12s;user-select:none}
+.row:active{background:var(--card2)}
+.row.done{background:var(--greenbg);border-color:#1c6b3a}
+.no{flex:0 0 34px;height:34px;border-radius:9px;background:var(--card2);border:1px solid var(--line);
+display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:var(--mut)}
+.row.done .no{background:#16532f;border-color:#1c6b3a;color:#bbf7d0}
+.info{flex:1;min-width:0}
+.nm{font-size:16px;font-weight:700;line-height:1.25;word-break:break-word}
+.sub{font-size:12px;color:var(--mut);margin-top:3px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;background:var(--card2);border:1px solid var(--line)}
+.badge.vip{background:#3b1d52;border-color:#6b3fa0;color:#e9d5ff}
+.badge.yes{background:#0e2f4a;border-color:#1e5a8a;color:#bfdbfe}
+.badge.no{background:#3a2410;border-color:#7a4a1a;color:#fed7aa}
+.tick{flex:0 0 30px;height:30px;border-radius:50%;border:2px solid var(--line);display:flex;align-items:center;
+justify-content:center;font-size:18px;color:transparent}
+.row.done .tick{background:var(--green);border-color:var(--green);color:#fff}
+.doneby{font-size:11px;color:#7dd3a0;margin-top:4px;font-weight:600}
+.empty{text-align:center;color:var(--mut);padding:40px 20px;font-size:14px}
+.cancelsec{margin:14px 12px 0}
+.cancelhd{font-size:13px;font-weight:700;color:var(--red);padding:8px 4px;display:flex;justify-content:space-between}
+.row.cx{opacity:.55;background:var(--card);border-style:dashed}
+.row.cx .nm{text-decoration:line-through}
+.footbar{position:fixed;left:0;right:0;bottom:0;z-index:15;background:#0f1720ee;backdrop-filter:blur(6px);
+border-top:1px solid var(--line);padding:8px 12px;display:none}
+.footbar .in{max-width:640px;margin:0 auto;display:flex;gap:8px}
+.footbar button{flex:1;padding:11px;border-radius:12px;border:1px solid var(--line);background:var(--card);
+color:var(--txt);font-size:14px;font-weight:700}
+.online{font-size:11px;color:var(--green);margin-top:6px;text-align:center}
+.modal{position:fixed;inset:0;background:#000a;z-index:50;display:flex;align-items:center;justify-content:center;padding:24px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;max-width:360px;width:100%}
+.box h3{font-size:18px;margin-bottom:6px} .box p{color:var(--mut);font-size:13px;margin-bottom:14px}
+.box input{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card2);
+color:var(--txt);font-size:16px;margin-bottom:14px}
+.box .b2{display:flex;gap:8px}
+.box button{flex:1;padding:12px;border-radius:12px;border:none;font-size:15px;font-weight:700}
+.bp{background:var(--blue);color:#fff} .bs{background:var(--card2);color:var(--txt);border:1px solid var(--line)}
+.bd{background:var(--red);color:#fff}
+.gear{background:none;border:none;color:var(--mut);font-size:20px;padding:2px 6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="htop">
+    <h1>✈️ เช็คขึ้นเครื่อง</h1>
+    <div style="display:flex;align-items:center;gap:6px">
+      <span class="who" id="who" onclick="askName()">👤 <b id="whoName">-</b></span>
+      <button class="gear" onclick="openMenu()">⚙️</button>
+    </div>
+  </div>
+  <div class="counter">
+    <div class="stat done"><div class="n" id="cDone">0</div><div class="l">ขึ้นแล้ว</div></div>
+    <div class="stat left"><div class="n" id="cLeft">0</div><div class="l">ยังไม่ขึ้น</div></div>
+    <div class="stat"><div class="n" id="cTot">0</div><div class="l">ทั้งหมด</div></div>
+  </div>
+  <div class="bar"><i id="bar"></i></div>
+  <input class="search" id="q" placeholder="🔍 ค้นชื่อ / ชื่อเล่น / เลข" oninput="render()">
+  <div class="chips" id="stChips">
+    <div class="chip st on" data-st="all" onclick="setSt(this,'all')">ทั้งหมด</div>
+    <div class="chip st" data-st="left" onclick="setSt(this,'left')">ยังไม่ขึ้น</div>
+    <div class="chip st" data-st="done" onclick="setSt(this,'done')">ขึ้นแล้ว</div>
+  </div>
+  <div class="chips" id="grChips">
+    <div class="chip on" data-gr="all" onclick="setGr(this,'all')">ทุกกลุ่ม</div>
+    <div class="chip" data-gr="Customer" onclick="setGr(this,'Customer')">ลูกค้า</div>
+    <div class="chip" data-gr="Special" onclick="setGr(this,'Special')">ลูกค้าพิเศษ</div>
+    <div class="chip" data-gr="Team" onclick="setGr(this,'Team')">ทีม STS</div>
+  </div>
+  <select class="sel" id="course" onchange="render()"><option value="">— ทุกสนามกอล์ฟ —</option></select>
+  <div class="online" id="online"></div>
+</header>
+
+<div class="list" id="list"></div>
+<div class="cancelsec" id="cancelSec"></div>
+</div>
+
+<div class="footbar" id="footbar"><div class="in">
+  <button onclick="scrollTop()">⬆️ บนสุด</button>
+  <button onclick="setSt(document.querySelector('[data-st=left]'),'left')">🔎 เหลือใครบ้าง</button>
+</div></div>
+
+<script>
+const ROSTER = [{"no": 1, "name": "Khun Per Harald Elisson", "nick": "แฮรอล", "group": "Customer", "course": "Black mountain", "ticket": "No", "remark": "ยกเลิกไม่มา", "cancelled": true}, {"no": 2, "name": "คุณอรุณ จุลพันธ์", "nick": "บอย", "group": "Customer", "course": "Black mountain", "ticket": "No", "remark": "ยกเลิกไม่มา", "cancelled": true}, {"no": 3, "name": "อานนท์ ศรีกิมแก้ว", "nick": "อานนท์", "group": "Customer", "course": "Black mountain", "ticket": "No", "remark": "ยกเลิกไม่มา", "cancelled": true}, {"no": 4, "name": "คุณ พัสกร รอดเดช", "nick": "แม้ว", "group": "Customer", "course": "Amata Spring Country Club", "ticket": "No", "remark": "ยกเลิกไม่มา", "cancelled": true}, {"no": 5, "name": "คุณปลาย ขำสังข์", "nick": "ปราย", "group": "Customer", "course": "Amata Spring Country Club", "ticket": "Yes", "remark": "Bankkok Airways      PG273  12.35 - 02.05 PM   PG270 Bankkok Airways 07.35 - 09.10 AM", "cancelled": false}, {"no": 6, "name": "คุณวินัย ธีระวัฒนศิริ", "nick": "โปรวินัย", "group": "Customer", "course": "Royal Lakeside", "ticket": "No", "remark": "", "cancelled": false}, {"no": 7, "name": "Daniel Boongullaya", "nick": "แดน", "group": "Customer", "course": "Blue Canyon Country Club", "ticket": "No", "remark": "", "cancelled": false}, {"no": 8, "name": "ลูเซีย บุญกันยา", "nick": "ภรรยาคุณแดน", "group": "Customer", "course": "Blue Canyon Country Club", "ticket": "No", "remark": "", "cancelled": false}, {"no": 9, "name": "คุณพนมศักดิ์ กุลดิลก", "nick": "เปีย", "group": "Customer", "course": "Blue Canyon Country Club", "ticket": "No", "remark": "", "cancelled": false}, {"no": 10, "name": "Tanakorn Sea-Ung", "nick": "จุ้ย", "group": "Customer", "course": "Blue Canyon Country Club", "ticket": "No", "remark": "", "cancelled": false}, {"no": 11, "name": "Ammam", "nick": "อัมมาน", "group": "Customer", "course": "Blue Canyon Country Club", "ticket": "No", "remark": "", "cancelled": false}, {"no": 12, "name": "คุณนพรุจ สิงห์คร", "nick": "โปรหน่อย", "group": "Customer", "course": "Springfield Royal Country Club", "ticket": "Yes", "remark": "พี่หมวยโทรมาขอตั๋ว วันที่ 16/7/2026 เนื่องจากโปรหน่อย รถชน", "cancelled": false}, {"no": 13, "name": "ณิศารัศมิ์ พรสิริวิชิต", "nick": "ผู้ติดตาม", "group": "Customer", "course": "Springfield Royal Country Club", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 14, "name": "กฤษฏิณัฐ พรสิริวิชิต", "nick": "ผู้ติดตาม", "group": "Customer", "course": "Springfield Royal Country Club", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 15, "name": "คุณ กำธร สมานัตตานันท์", "nick": "กำธร", "group": "Customer", "course": "The Royal Gems Golf and Sports Club", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 16, "name": "คุณกานต์ สุขสันต์", "nick": "กาญ", "group": "Customer", "course": "The Royal Gems City Golf", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 17, "name": "คุณภัทร วิสิฐนรภัทร", "nick": "ป้อง", "group": "Customer", "course": "Green Valley BangNa", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 18, "name": "คุณสุทัศน์ พรหมทอง", "nick": "สุทัศน์", "group": "Customer", "course": "Green Valley BangNa", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 19, "name": "คุณสมศักดิ์ เจริญทรัพย์", "nick": "สมศักด", "group": "Customer", "course": "Green Valley BangNa", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 20, "name": "คุณ สาธร ประทุม", "nick": "แมค", "group": "Customer", "course": "Stone Hill Golf", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 21, "name": "คุณ เชาวรัตน์ เชาว์ชวานิล", "nick": "ชวรัต", "group": "Customer", "course": "The Royal Golf and Country Club", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 22, "name": "คุณมานะ สังข์พุก", "nick": "แด๊น", "group": "Customer", "course": "Lake View Resort & Golf Club", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 23, "name": "คุณวิพลสรรพ์ แม้นชื่น", "nick": "น้ำ", "group": "Customer", "course": "Kabinburi Sport club", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 24, "name": "คุณณัฐกิตติ์ น้อยอินวงค์", "nick": "นัต", "group": "Customer", "course": "Kabinburi Sport club", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 25, "name": "คุณจักรชัย จันทร์นิ่ม", "nick": "ไก่", "group": "Customer", "course": "Kabinburi Sport club", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 26, "name": "คุณอำพล วัฒนวรพงศ์", "nick": "อำพล", "group": "Customer", "course": "Kabinburi Sport club", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 27, "name": "ดร.เนรัญ สุวรรณโชติช่าง", "nick": "เนรัญ", "group": "Customer", "course": "GOLFEAST", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 28, "name": "คุณ พีรพล ปิ่นทอง", "nick": "พีรพล", "group": "Customer", "course": "Laem Chabang International", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 29, "name": "คุณปริญานี โภชน์เจริญ", "nick": "", "group": "Customer", "course": "Laem Chabang International", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 30, "name": "คุณ อนุสรณ์ บุญประเสริฐ", "nick": "อนุสร", "group": "Customer", "course": "The Vintage Club", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 31, "name": "คุณ พันรพ สุดเทวา", "nick": "พัลลพ", "group": "Customer", "course": "The Vintage Club", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 32, "name": "Blair  Pratt", "nick": "แบร", "group": "Customer", "course": "POKHEETHARA(SOFITEL)", "ticket": "No", "remark": "", "cancelled": false}, {"no": 33, "name": "ภรรยา Blair  Pratt (ผู้ติดตาม)", "nick": "", "group": "Customer", "course": "POKHEETHARA(SOFITEL)", "ticket": "No", "remark": "", "cancelled": false}, {"no": 34, "name": "Christian Ramirez", "nick": "คริส", "group": "Customer", "course": "POKHEETHARA(SOFITEL)", "ticket": "No", "remark": "", "cancelled": false}, {"no": 35, "name": "PAUL WILSON", "nick": "พอล", "group": "Customer", "course": "Laguna Phuket Golf Club", "ticket": "No", "remark": "", "cancelled": false}, {"no": 36, "name": "Nattawan Wilson", "nick": "", "group": "Customer", "course": "Laguna Phuket Golf Club", "ticket": "No", "remark": "", "cancelled": false}, {"no": 37, "name": "STEPHEN CHIC", "nick": "สตีเฟ่น", "group": "Customer", "course": "Laguna Phuket Golf Club", "ticket": "No", "remark": "", "cancelled": false}, {"no": 38, "name": "Khun Jhomer Darlito Q. Patalot Jr.", "nick": "โจเมอร์", "group": "Customer", "course": "Laguna Phuket Golf Club", "ticket": "No", "remark": "", "cancelled": false}, {"no": 39, "name": "Wasana Patalot", "nick": "ภรรยาคุณโจเมอร์", "group": "Customer", "course": "Laguna Phuket Golf Club", "ticket": "No", "remark": "", "cancelled": false}, {"no": 40, "name": "คุณโมย่าเจนย์  ชุติกาญจน์ แฮรีส", "nick": "โมย่า", "group": "Customer", "course": "Flora Ville Golf Club", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 41, "name": "Wah Yu Jack Wong", "nick": "แจ็ค", "group": "Customer", "course": "Aquella Country Club", "ticket": "No", "remark": "", "cancelled": false}, {"no": 42, "name": "Sommart Apichatarattana", "nick": "สมมาตร", "group": "Customer", "course": "Aquella Country Club", "ticket": "No", "remark": "", "cancelled": false}, {"no": 43, "name": "คุณชวทรรศน์ ศุภปัณฑิตา", "nick": "ลิฟ", "group": "Customer", "course": "Palm Hills Golf Club and Residence", "ticket": "Yes", "remark": "Bankkok Airways PG273  12.35 - 02.05 PM  PG278 เวลา 07.10 -08.45 PM", "cancelled": false}, {"no": 44, "name": "คุณจิระศักดิ์ ศุภปัณฑิตา", "nick": "คุณพ่อคุณลิป", "group": "Customer", "course": "Palm Hills Golf Club and Residence", "ticket": "Yes", "remark": "Bankkok Airways PG273  12.35 - 02.05 PM  PG278 เวลา 07.10 -08.45 PM", "cancelled": false}, {"no": 45, "name": "คุณกิติชัย ชุมพล", "nick": "กิติชัย", "group": "Customer", "course": "Riverdale Golf Club", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 46, "name": "คุณ เกียรติศักดิ์ เกตุศิริ", "nick": "เกียรติ", "group": "Customer", "course": "Riverdale Golf Club", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 47, "name": "คุณ สราวุธ วิวัฒนสิเนศวร", "nick": "ต่อ", "group": "Customer", "course": "Riverdale Golf Club", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 48, "name": "สุพจน์ พ่วงขำ", "nick": "สุพจ", "group": "Customer", "course": "Riverdale Golf Club", "ticket": "No", "remark": "", "cancelled": false}, {"no": 49, "name": "คุณวิบูล สุขเกษม", "nick": "วิบูล", "group": "Customer", "course": "Riverdale Golf Club", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 50, "name": "นาย  โชค  หนูเมือง", "nick": "โชค", "group": "Customer", "course": "Loch Palm Golf Club / Red Mountain Golf Club", "ticket": "No", "remark": "", "cancelled": false}, {"no": 51, "name": "คุณวิรัช หวังดี", "nick": "แอน", "group": "Customer", "course": "Loch Palm Golf Club / Red Mountain Golf Club", "ticket": "No", "remark": "", "cancelled": false}, {"no": 52, "name": "คุณณัฐพงษ์ ภู่พงษ์", "nick": "บ่าว", "group": "Customer", "course": "Loch Palm Golf Club / Red Mountain Golf Club", "ticket": "No", "remark": "", "cancelled": false}, {"no": 53, "name": "คุณ ธนดล จันทวงศ์", "nick": "รื่น", "group": "Customer", "course": "Rancho Charnvee Country Club", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 54, "name": "คุณ บุญอาจ ขันธรรม", "nick": "จ่อย", "group": "Customer", "course": "Rancho Charnvee Country Club", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 55, "name": "Khun Kenny Mackay", "nick": "Kenny", "group": "Customer", "course": "RobinWood", "ticket": "No", "remark": "", "cancelled": false}, {"no": 56, "name": "ธเนศ เกิดทรง", "nick": "เบิร์ด", "group": "Customer", "course": "Royal Bangpa In Sport club", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 57, "name": "คุณ นิภาภรณ์ อิ่มทั่ว", "nick": "เจี๊ยบ", "group": "Customer", "course": "Siam Rolling Hills", "ticket": "No", "remark": "", "cancelled": false}, {"no": 58, "name": "คุณกรรภิรมย์ หมั่นหาทรัพย์ (ผู้ติดตาม)", "nick": "ผึ้ง", "group": "Customer", "course": "Siam Rolling Hills", "ticket": "No", "remark": "", "cancelled": false}, {"no": 59, "name": "คุณ เบญจพล เถาว์กายา", "nick": "แจ้", "group": "Customer", "course": "Pattavia Century Golf Club", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 60, "name": "คุณจักรพงค์ สุทธิรุ่งเรือง", "nick": "จักร", "group": "Customer", "course": "Pattavia Century Golf Club", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 61, "name": "Fuengfha Luengon", "nick": "ผู้ติดตาม", "group": "Customer", "course": "Pattavia Century Golf Club", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 62, "name": "คุณ ศุภกร แผ้วพลสง", "nick": "ต้อม", "group": "Customer", "course": "Kirimaya Golf Club", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 63, "name": "คุณไพรินทร์ สมบูรณ์กุล", "nick": "", "group": "Customer", "course": "Kirimaya Golf Club", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 64, "name": "คุณรัชนี   ภักดีพาณิชพงศ์", "nick": "ยุ", "group": "Customer", "course": "Dynasty Golf and Country Club", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 65, "name": "คุณเถลิงชัย สุวรรณมัย", "nick": "เถลิง", "group": "Customer", "course": "Sai Golf club", "ticket": "No", "remark": "", "cancelled": false}, {"no": 66, "name": "คุณภาณุวัฒน์ อรุณทิพย์ไพฑูรย์", "nick": "อั้น", "group": "Customer", "course": "KRATATHONG", "ticket": "No", "remark": "", "cancelled": false}, {"no": 67, "name": "คุณนพรัตน์ สุลีทัศน์", "nick": "นพรัตน์", "group": "Customer", "course": "Rajjaprabha Dam Golf Course", "ticket": "No", "remark": "", "cancelled": false}, {"no": 68, "name": "คุณสันติ ณ รังศิลป์", "nick": "สันติ ทอสคาน่า", "group": "Customer", "course": "Toscana Valley", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 69, "name": "คุณศศิสุดา พันธุ", "nick": "คุณศศิสุดา พันธุ", "group": "Customer", "course": "Toscana Valley", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 70, "name": "คุณ ศรัณย์ชัย วสุนธรา", "nick": "คุณเพิ่ม", "group": "Customer", "course": "Hula Hula Golf club", "ticket": "No", "remark": "", "cancelled": false}, {"no": 71, "name": "Robert James Shippey", "nick": "Jame Sippy", "group": "Customer", "course": "Absolute", "ticket": "No", "remark": "พี่ทิพย์ถามคุณหนิง ว่าจะบินเอง 24/7/2026", "cancelled": false}, {"no": 72, "name": "Araya Shippey", "nick": "มะตูม", "group": "Customer", "course": "Absolute", "ticket": "No", "remark": "พี่ทิพย์ถามคุณหนิง ว่าจะบินเอง 24/7/2026", "cancelled": false}, {"no": 73, "name": "คุณเมษา หารไชย", "nick": "คุณเมษา", "group": "Customer", "course": "T&P constructer co.,Ltd", "ticket": "No", "remark": "", "cancelled": false}, {"no": 74, "name": "คุณศักดา อู่รัก", "nick": "ศักดา", "group": "Customer", "course": "Hariphunchai Golf Club", "ticket": "Yes", "remark": "PG216 Bankkok Airways 23/08 CNX-BKK 10.10-11.35 AM ต่อเครื่อง PG273 12.35- 02.05 PM  ขากลับ PG274 02.45 - 04.20 PM ต่อเครื่อง Bankkok Airways PG219 05.50-07.10 PM BKK -CNX", "cancelled": false}, {"no": 75, "name": "คุณดุสิต บุตรเวียงพันธุ์", "nick": "", "group": "Customer", "course": "Rayong Green Valley Golf", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 76, "name": "คุณสุนิสา ทั่งสี", "nick": "", "group": "Customer", "course": "The Wang Noi", "ticket": "No", "remark": "", "cancelled": false}, {"no": 77, "name": "คุณกรวิชญ์ ปั้มฮิม กว๊อก", "nick": "คุณกรวิชญ์", "group": "Customer", "course": "Pattana Sports Resort", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 78, "name": "คุณฉัตรเพชร บางเพ็ชร", "nick": "คุุณฉัตรเพชร", "group": "Customer", "course": "Pattana Sports Resort", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 79, "name": "คุณพักรบ ดวงเพชร", "nick": "คุณพักรบ", "group": "Customer", "course": "North Park", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 80, "name": "คุณสถาพร เมืองหนู", "nick": "คุณดอน", "group": "Customer", "course": "Uniland Golf", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 81, "name": "MR.Ron Carlyle", "nick": "", "group": "Special", "course": "ลูกค้าเชิญพิเศษ", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 82, "name": "Nora  Carlyle", "nick": "", "group": "Special", "course": "ลูกค้าเชิญพิเศษ", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 83, "name": "คุณสายัณห์ ธรฤทธิ์", "nick": "สายัน", "group": "Special", "course": "ลูกค้าเชิญพิเศษ", "ticket": "No", "remark": "", "cancelled": false}, {"no": 84, "name": "คุณพัสกร ธีระวรรณ", "nick": "", "group": "Special", "course": "ลูกค้าเชิญพิเศษ", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 85, "name": "อรรถญา สุริยวงศ์แห", "nick": "", "group": "Special", "course": "ลูกค้าเชิญพิเศษ", "ticket": "No", "remark": "", "cancelled": false}, {"no": 86, "name": "Nidcha Khemapanya (Pam)", "nick": "", "group": "Special", "course": "ลูกค้าเชิญพิเศษ", "ticket": "No", "remark": "", "cancelled": false}, {"no": 87, "name": "Nicer SD.Landas", "nick": "CEO", "group": "Special", "course": "ลูกค้าเชิญพิเศษ", "ticket": "No", "remark": "", "cancelled": false}, {"no": 88, "name": "Onjira Khottha", "nick": "", "group": "Special", "course": "ลูกค้าเชิญพิเศษ", "ticket": "No", "remark": "", "cancelled": false}, {"no": 89, "name": "David Gilmour", "nick": "", "group": "Special", "course": "ลูกค้าเชิญพิเศษ", "ticket": "No", "remark": "", "cancelled": false}, {"no": 90, "name": "Joseph M Brennan", "nick": "", "group": "Special", "course": "ลูกค้าเชิญพิเศษ", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 91, "name": "Doungruethai Saiyawa", "nick": "", "group": "Special", "course": "ลูกค้าเชิญพิเศษ", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 92, "name": "Romnaphatr K Walters", "nick": "", "group": "Special", "course": "ลูกค้าเชิญพิเศษ", "ticket": "No", "remark": "", "cancelled": false}, {"no": 93, "name": "Howie Roberts", "nick": "", "group": "Special", "course": "ลูกค้าเชิญพิเศษ", "ticket": "No", "remark": "", "cancelled": false}, {"no": 94, "name": "Pitchayaporn Nonwit", "nick": "คุณฉิง", "group": "Special", "course": "ลูกค้าเชิญพิเศษ", "ticket": "No", "remark": "", "cancelled": false}, {"no": 95, "name": "Supranee Woods", "nick": "", "group": "Special", "course": "ลูกค้าเชิญพิเศษ", "ticket": "No", "remark": "", "cancelled": false}, {"no": 96, "name": "Darren Moseley", "nick": "", "group": "Special", "course": "ลูกค้าเชิญพิเศษ", "ticket": "No", "remark": "", "cancelled": false}, {"no": 97, "name": "Gareth Procter", "nick": "", "group": "Special", "course": "ลูกค้าเชิญพิเศษ", "ticket": "No", "remark": "", "cancelled": false}, {"no": 98, "name": "คุณทิวากร ศรีบุญเรือง", "nick": "", "group": "Special", "course": "ลูกค้าเชิญพิเศษ", "ticket": "No", "remark": "", "cancelled": false}, {"no": 99, "name": "Sam", "nick": "", "group": "Special", "course": "ลูกค้าเชิญพิเศษ", "ticket": "No", "remark": "แจ้งไม่มา ในที่ประชุมวันนที่ 3สค", "cancelled": false}, {"no": 100, "name": "Zenta", "nick": "", "group": "Special", "course": "ลูกค้าเชิญพิเศษ", "ticket": "No", "remark": "แจ้งไม่มา ในที่ประชุมวันนที่ 3สค", "cancelled": false}, {"no": 101, "name": "คุณธนพร ศรีโรจน์", "nick": "", "group": "Special", "course": "ลูกค้าเชิญพิเศษ", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 102, "name": "Ms. Phanthipa Burgess", "nick": "คุณหนิง", "group": "Team", "course": "STS  THAI Team.", "ticket": "VIP", "remark": "บิน 21 กลับ 25", "cancelled": false}, {"no": 103, "name": "Mr. Bradley James Burbess", "nick": "คุุณแบรด", "group": "Team", "course": "STS  THAI Team.", "ticket": "VIP", "remark": "บิน 21 กลับ 25", "cancelled": false}, {"no": 104, "name": "Miss Rossukon Sae-see", "nick": "คุณบ๊วย", "group": "Team", "course": "STS  THAI Team.", "ticket": "VIP", "remark": "จองแล้ว", "cancelled": false}, {"no": 105, "name": "Ms.Kanjanaporn Srijunya", "nick": "คุณแจง", "group": "Team", "course": "STS  THAI Team.", "ticket": "VIP", "remark": "บิน 21 กลับ 25", "cancelled": false}, {"no": 106, "name": "Mr.Poonsab Kongwahasinghon", "nick": "คุณหวาน", "group": "Team", "course": "STS  THAI Team.", "ticket": "VIP", "remark": "บิน 21 กลับ 25", "cancelled": false}, {"no": 107, "name": "Miss Nichapat Jokpo", "nick": "คุณทิพย์", "group": "Team", "course": "STS  THAI Team.", "ticket": "VIP", "remark": "จองแล้ว", "cancelled": false}, {"no": 108, "name": "Mr.Jakkrit Prawiset", "nick": "คุณเอ็ม", "group": "Team", "course": "STS  THAI Team.", "ticket": "VIP", "remark": "บิน 21 กลับ 25", "cancelled": false}, {"no": 109, "name": "Mr.Suebsak Premsiri", "nick": "คุณโฟล์ค", "group": "Team", "course": "STS  THAI Team.", "ticket": "VIP", "remark": "จองแล้ว", "cancelled": false}, {"no": 110, "name": "Miss Suparat Lephayap", "nick": "คุณเฟิร์น", "group": "Team", "course": "STS  THAI Team.", "ticket": "VIP", "remark": "บิน 21 กลับ 25", "cancelled": false}, {"no": 111, "name": "Miss. Preeyanan Prasertsom", "nick": "คุณตูน", "group": "Team", "course": "STS  THAI Team.", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 112, "name": "Miss Nattaya Lamor", "nick": "คุณนีม", "group": "Team", "course": "STS  THAI Team.", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 113, "name": "Mr.Supakit Insomboon", "nick": "คุณน้ำ", "group": "Team", "course": "STS  THAI Team.", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 114, "name": "Mr.Pongsakorn Lertnalai", "nick": "คุณเป้", "group": "Team", "course": "STS  THAI Team.", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 115, "name": "Mr.Yodpet Phothongsuk", "nick": "คุณเพชร", "group": "Team", "course": "STS  THAI Team.", "ticket": "VIP", "remark": "จองแล้ว", "cancelled": false}, {"no": 116, "name": "Mr. Ittipon Tunyajeroen", "nick": "คุณอิท", "group": "Team", "course": "STS  THAI Team.", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 117, "name": "Miss.Uthaiwan Udon", "nick": "คุณหมวย", "group": "Team", "course": "STS  THAI Team.", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 118, "name": "Mr.Wasin Watchiraprasert", "nick": "คุณนิว", "group": "Team", "course": "STS  THAI Team.", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 119, "name": "Miss Chadaporn Wantawee", "nick": "คุณเฟิร์น", "group": "Team", "course": "STS  THAI Team.", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 120, "name": "Mr.Boonchuay Rompung", "nick": "คุณช่วย", "group": "Team", "course": "STS  THAI Team.", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 121, "name": "Mr. Sunya Promsuwan", "nick": "คุณกร", "group": "Team", "course": "STS  THAI Team.", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 122, "name": "Mr.Wikorn KUmmin", "nick": "คุณวิกร", "group": "Team", "course": "STS  THAI Team.", "ticket": "VIP", "remark": "ขับรถไป", "cancelled": false}, {"no": 123, "name": "Mr.Somporn Meerat", "nick": "คุณสมพร", "group": "Team", "course": "STS  THAI Team.", "ticket": "VIP", "remark": "ขับรถไป", "cancelled": false}, {"no": 124, "name": "Mr.Ubon Phuphaden", "nick": "คุณอุบล", "group": "Team", "course": "STS  THAI Team.", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 125, "name": "Miss Nitcha Pronpeng", "nick": "คุณกี้", "group": "Team", "course": "STS  THAI Team.", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 126, "name": "Mr.Thaweesak Chantasaen", "nick": "คุณอ๊อด", "group": "Team", "course": "STS  THAI Team.", "ticket": "VIP", "remark": "", "cancelled": false}, {"no": 127, "name": "Mr.Phiphat Janthasen", "nick": "คุณโอ๊ต", "group": "Team", "course": "STS  THAI Team.", "ticket": "VIP", "remark": "", "cancelled": false}, {"no": 128, "name": "Mr.Pisut Promsen", "nick": "คุณซิ่ง", "group": "Team", "course": "STS  THAI Team.", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 129, "name": "Mr.Pontisan Pimmasen", "nick": "คุณหิน", "group": "Team", "course": "STS  THAI Team.", "ticket": "VIP", "remark": "", "cancelled": false}, {"no": 130, "name": "Mr.Thanin Nanon", "nick": "คุณกอล์ฟ", "group": "Team", "course": "STS  THAI Team.", "ticket": "VIP", "remark": "", "cancelled": false}, {"no": 131, "name": "Mr Chadd Burgess", "nick": "Chadd", "group": "Team", "course": "STS  THAI Team.", "ticket": "VIP", "remark": "บิน 21 กลับ 25", "cancelled": false}, {"no": 132, "name": "Mr. Narong Sukjaroen", "nick": "คุณบอย", "group": "Team", "course": "STS  THAI Team.", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 133, "name": "Mr Fiat Burgess", "nick": "Fiat", "group": "Team", "course": "STS THAI Team.", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 134, "name": "Mr Suchanan Laowichuwakonnukul", "nick": "Zen", "group": "Team", "course": "STS THAI Team.", "ticket": "Yes", "remark": "", "cancelled": false}, {"no": 135, "name": "Folk Burgess", "nick": "Folk", "group": "Team", "course": "STS THAI Team.", "ticket": "VIP", "remark": "บิน 21 กลับ 25", "cancelled": false}];
+const CFG = {apiKey:"AIzaSyAx0beeppYmh6sgPu4fp9XJVfx9uXPqk-I",
+  databaseURL:"https://stock-counter-7032f-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:"stock-counter-7032f"};
+const ROOM = "STS-checkin";
+let db, status = {}, myName = localStorage.getItem('checkinName')||'', myId = localStorage.getItem('checkinId')||('u'+Math.random().toString(36).slice(2,8));
+localStorage.setItem('checkinId', myId);
+let fSt='all', fGr='all', OFFLINE=false;
+const active = ROSTER.filter(p=>!p.cancelled);
+const cancelled = ROSTER.filter(p=>p.cancelled);
+
+try{
+  if(typeof firebase==='undefined') throw new Error('firebase sdk not loaded');
+  firebase.initializeApp(CFG);
+  db = firebase.database();
+}catch(e){
+  OFFLINE=true;
+  try{status=JSON.parse(localStorage.getItem('checkinStatus_'+ROOM)||'{}')}catch(_){status={}}
+  banner();
+}
+
+// populate course dropdown (customers)
+const courses=[...new Set(active.filter(p=>p.course).map(p=>p.course))].sort();
+const csel=document.getElementById('course');
+courses.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;csel.appendChild(o)});
+
+function banner(){document.getElementById('online').innerHTML='⚠️ ต่อ Firebase ไม่ได้ — โหมดออฟไลน์ (เครื่องนี้เท่านั้น ไม่ sync)';document.getElementById('online').style.color='var(--amber)';}
+function presence(){
+  if(OFFLINE||!myName||!db)return;
+  const ref=db.ref('rooms/'+ROOM+'/online/'+myId);
+  ref.set({name:myName,at:Date.now()});ref.onDisconnect().remove();
+}
+if(!OFFLINE&&db){
+  db.ref('rooms/'+ROOM+'/status').on('value',s=>{status=s.val()||{};render()});
+  db.ref('rooms/'+ROOM+'/online').on('value',s=>{
+    const v=s.val()||{};const now=Date.now();
+    const names=Object.values(v).filter(u=>now-(u.at||0)<120000).map(u=>u.name);
+    document.getElementById('online').textContent=names.length?('🟢 ออนไลน์: '+names.join(', ')):'';
+  });
+  setInterval(presence,60000);
+}
+
+function fmtT(ts){const d=new Date(ts);return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)}
+function tk(p){return p.ticket==='Yes'?'<span class="badge yes">มีตั๋ว</span>':p.ticket==='No'?'<span class="badge no">ไม่มีตั๋ว</span>':''}
+
+function render(){
+  const q=(document.getElementById('q').value||'').toLowerCase().trim();
+  const cf=document.getElementById('course').value;
+  const done=active.filter(p=>status[p.no]&&status[p.no].boarded).length;
+  document.getElementById('cDone').textContent=done;
+  document.getElementById('cLeft').textContent=active.length-done;
+  document.getElementById('cTot').textContent=active.length;
+  document.getElementById('bar').style.width=(active.length?done/active.length*100:0)+'%';
+
+  let items=active.filter(p=>{
+    if(fGr!=='all'&&p.group!==fGr)return false;
+    if(cf&&p.course!==cf)return false;
+    const isDone=!!(status[p.no]&&status[p.no].boarded);
+    if(fSt==='done'&&!isDone)return false;
+    if(fSt==='left'&&isDone)return false;
+    if(q){const hay=(p.name+' '+p.nick+' '+p.no+' '+p.course).toLowerCase();if(!hay.includes(q))return false}
+    return true;
+  });
+  const groups=fGr==='all'?['Customer','Special','Team']:[fGr];
+  let html='';
+  groups.forEach(g=>{
+    const gi=items.filter(p=>p.group===g);
+    if(!gi.length)return;
+    const gd=gi.filter(p=>status[p.no]&&status[p.no].boarded).length;
+    html+='<div class="gh">'+(g==='Customer'?'ลูกค้า':g==='Special'?'ลูกค้าพิเศษ':'ทีม STS')+' <span class="c">'+gd+'/'+gi.length+'</span></div>';
+    gi.forEach(p=>html+=rowHtml(p));
+  });
+  document.getElementById('list').innerHTML=html||'<div class="empty">— ไม่พบรายชื่อตามที่กรอง —</div>';
+
+  // cancelled section
+  if(cancelled.length){
+    let ch='<div class="cancelhd">🚫 ยกเลิก/ไม่มา ('+cancelled.length+') <span onclick="toggleCx()" style="color:var(--mut)">แสดง/ซ่อน</span></div>';
+    ch+='<div id="cxList" style="display:'+(cxOpen?'block':'none')+'">'+cancelled.map(p=>rowHtml(p,true)).join('')+'</div>';
+    document.getElementById('cancelSec').innerHTML=ch;
+  }
+}
+let cxOpen=false;
+function toggleCx(){cxOpen=!cxOpen;render()}
+function rowHtml(p,cx){
+  const s=status[p.no]||{};const isDone=!!s.boarded;
+  const cls='row'+(cx?' cx':(isDone?' done':''));
+  const by=isDone&&!cx?'<div class="doneby">✓ '+(s.by||'')+' • '+fmtT(s.at)+'</div>':'';
+  return '<div class="'+cls+'" '+(cx?'':'onclick="toggle('+p.no+')"')+'>'
+    +'<div class="no">'+p.no+'</div>'
+    +'<div class="info"><div class="nm">'+esc(p.name)+(p.nick?' <span style="color:var(--mut);font-weight:500">('+esc(p.nick)+')</span>':'')+'</div>'
+    +'<div class="sub">'+(p.course?'<span>📍'+esc(p.course)+'</span>':'')+tk(p)+'</div>'+by+'</div>'
+    +(cx?'':'<div class="tick">✓</div>')+'</div>';
+}
+function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
+
+function saveLocal(){try{localStorage.setItem('checkinStatus_'+ROOM,JSON.stringify(status))}catch(_){}}
+function toggle(no){
+  if(!myName){askName();return}
+  const cur=status[no]&&status[no].boarded;
+  if(cur){
+    if(!confirm('ยกเลิกเช็คอินของคนนี้?'))return;
+    if(OFFLINE){delete status[no];saveLocal();render()}else{db.ref('rooms/'+ROOM+'/status/'+no).remove()}
+  }else{
+    const rec={boarded:true,by:myName,at:Date.now()};
+    if(OFFLINE){status[no]=rec;saveLocal();render()}else{db.ref('rooms/'+ROOM+'/status/'+no).set(rec)}
+    if(navigator.vibrate)navigator.vibrate(30);
+  }
+}
+function setSt(el,v){fSt=v;document.querySelectorAll('#stChips .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');render();scrollTop()}
+function setGr(el,v){fGr=v;document.querySelectorAll('#grChips .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');render()}
+function scrollTop(){window.scrollTo({top:0,behavior:'smooth'})}
+window.addEventListener('scroll',()=>{document.getElementById('footbar').style.display=window.scrollY>300?'block':'none'});
+
+function askName(){
+  document.getElementById('nameInput').value=myName;
+  document.getElementById('nameModal').style.display='flex';
+  setTimeout(()=>document.getElementById('nameInput').focus(),100);
+}
+function saveName(){
+  const v=document.getElementById('nameInput').value.trim();
+  if(!v)return;
+  myName=v;localStorage.setItem('checkinName',v);
+  document.getElementById('whoName').textContent=v;
+  document.getElementById('nameModal').style.display='none';
+  presence();
+}
+function openMenu(){
+  const done=active.filter(p=>status[p.no]&&status[p.no].boarded).length;
+  const msg='เมนู\n\nขึ้นแล้ว '+done+'/'+active.length+' คน\n\nกด OK = ล้างสถานะเช็คอินทั้งหมด (เริ่มเช็ครอบใหม่)\nกด Cancel = ปิด';
+  if(confirm(msg)){
+    if(confirm('ยืนยัน! จะล้างการเช็คอินของทุกคนออกทั้งหมด ใช้ตอนเริ่มเที่ยวบินใหม่เท่านั้น')){
+      if(OFFLINE){status={};saveLocal();render()}else{db.ref('rooms/'+ROOM+'/status').remove()}
+    }
+  }
+}
+if(myName){document.getElementById('whoName').textContent=myName;presence()}else{setTimeout(askName,300)}
+render();
+</script>
+
+<div class="modal" id="nameModal" style="display:none">
+  <div class="box">
+    <h3>ใส่ชื่อผู้เช็ค</h3>
+    <p>ชื่อจะแสดงว่าใครเป็นคนเช็คแต่ละคน (เพื่อนร่วมงานเห็นแบบ real-time)</p>
+    <input id="nameInput" placeholder="เช่น โฟล์ค, เฟิร์น" onkeydown="if(event.key==='Enter')saveName()">
+    <div class="b2"><button class="bp" onclick="saveName()">บันทึก</button></div>
+  </div>
+</div>
+</body>
+</html>
